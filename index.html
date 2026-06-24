@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>家計簿＋資産管理</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <h1>家計簿＋資産管理</h1>
+
+  <!-- 下タブ -->
+  <nav>
+    <button onclick="showPage('input')">入力</button>
+    <button onclick="showPage('calendar')">カレンダー</button>
+    <button onclick="showPage('report')">レポート</button>
+    <button onclick="showPage('asset')">資産管理</button>
+  </nav>
+
+  <!-- 入力画面 -->
+  <section id="input" class="page">
+    <h2>入力</h2>
+
+    <div class="input-tabs">
+      <button id="tabExp" class="input-tab active" onclick="switchInputTab('exp')">支出</button>
+      <button id="tabInc" class="input-tab" onclick="switchInputTab('inc')">収入</button>
+    </div>
+
+    <!-- 支出入力 -->
+    <div id="expInput" class="card input-panel">
+      <h3>支出入力</h3>
+
+      <input id="expAmount" type="text" placeholder="金額" readonly onclick="openCalc('expAmount')">
+
+      <div class="category-grid">
+        <div class="cat-btn" data-cat="食費" onclick="selectCategory('exp','食費')">🍚<br>食費</div>
+        <div class="cat-btn" data-cat="日用品" onclick="selectCategory('exp','日用品')">🧻<br>日用品</div>
+        <div class="cat-btn" data-cat="光熱費" onclick="selectCategory('exp','光熱費')">💡<br>光熱費</div>
+        <div class="cat-btn" data-cat="住宅費" onclick="selectCategory('exp','住宅費')">🏠<br>住宅費</div>
+        <div class="cat-btn" data-cat="通信費" onclick="selectCategory('exp','通信費')">📱<br>通信費</div>
+        <div class="cat-btn" data-cat="ファッション" onclick="selectCategory('exp','ファッション')">👗<br>ファッション</div>
+        <div class="cat-btn" data-cat="子供" onclick="selectCategory('exp','子供')">🧒<br>子供</div>
+        <div class="cat-btn" data-cat="車" onclick="selectCategory('exp','車')">🚗<br>車</div>
+        <div class="cat-btn" data-cat="医療費" onclick="selectCategory('exp','医療費')">💊<br>医療費</div>
+        <div class="cat-btn" data-cat="美容" onclick="selectCategory('exp','美容')">💄<br>美容</div>
+        <div class="cat-btn" data-cat="旅行" onclick="selectCategory('exp','旅行')">✈️<br>旅行</div>
+        <div class="cat-btn" data-cat="交通費" onclick="selectCategory('exp','交通費')">🚃<br>交通費</div>
+        <div class="cat-btn" data-cat="交際費" onclick="selectCategory('exp','交際費')">🍻<br>交際費</div>
+        <div class="cat-btn" data-cat="プレゼント" onclick="selectCategory('exp','プレゼント')">🎁<br>プレゼント</div>
+        <div class="cat-btn" data-cat="友達" onclick="selectCategory('exp','友達')">👥<br>友達</div>
+        <div class="cat-btn" data-cat="娯楽" onclick="selectCategory('exp','娯楽')">🎮<br>娯楽</div>
+        <div class="cat-btn" data-cat="会社" onclick="selectCategory('exp','会社')">🏢<br>会社</div>
+        <div class="cat-btn" data-cat="その他" onclick="selectCategory('exp','その他')">📦<br>その他</div>
+      </div>
+
+      <input id="expCategory" type="hidden">
+
+      <label>支払口座</label>
+      <select id="expAccount"></select>
+
+      <input id="expDate" type="date">
+      <textarea id="expMemo" placeholder="メモ（任意）" rows="2"></textarea>
+      <button class="save-btn" onclick="addExpense()">支出を保存</button>
+    </div>
+
+    <!-- 収入入力 -->
+    <div id="incInput" class="card input-panel hidden">
+      <h3>収入入力</h3>
+
+      <input id="incAmount" type="text" placeholder="金額" readonly onclick="openCalc('incAmount')">
+
+      <div class="category-grid">
+        <div class="cat-btn" data-cat="パパ給料" onclick="selectCategory('inc','パパ給料')">👨‍💼<br>パパ給料</div>
+        <div class="cat-btn" data-cat="ママ給料" onclick="selectCategory('inc','ママ給料')">👩‍💼<br>ママ給料</div>
+        <div class="cat-btn" data-cat="副業" onclick="selectCategory('inc','副業')">💻<br>副業</div>
+        <div class="cat-btn" data-cat="賞与" onclick="selectCategory('inc','賞与')">💰<br>賞与</div>
+        <div class="cat-btn" data-cat="臨時収入" onclick="selectCategory('inc','臨時収入')">🎯<br>臨時収入</div>
+        <div class="cat-btn" data-cat="子供貯金" onclick="selectCategory('inc','子供貯金')">🧒💰<br>子供貯金</div>
+        <div class="cat-btn" data-cat="その他収入" onclick="selectCategory('inc','その他収入')">📦<br>その他収入</div>
+      </div>
+
+      <input id="incCategory" type="hidden">
+
+      <label>入金口座</label>
+      <select id="incAccount"></select>
+
+      <input id="incDate" type="date">
+      <textarea id="incMemo" placeholder="メモ（任意）" rows="2"></textarea>
+      <button class="save-btn" onclick="addIncome()">収入を保存</button>
+    </div>
+  </section>
+
+  <!-- カレンダー画面 -->
+  <section id="calendar" class="page hidden">
+    <h2>カレンダー</h2>
+
+    <div class="calendar-header">
+      <button onclick="prevMonth()">← 前月</button>
+      <span id="calendarTitle"></span>
+      <button onclick="nextMonth()">次月 →</button>
+    </div>
+
+    <div id="monthSummary" class="card"></div>
+    <div id="calendarArea"></div>
+
+    <h3>今月の一覧</h3>
+    <div id="monthList"></div>
+  </section>
+
+  <!-- レポート -->
+  <section id="report" class="page hidden">
+    <h2>レポート</h2>
+
+    <!-- 年間サマリー -->
+    <div class="card">
+      <h3>年間サマリー</h3>
+      <div class="report-header">
+        <button onclick="prevReportYear()">◀</button>
+        <span id="reportYearTitle"></span>
+        <button onclick="nextReportYear()">▶</button>
+      </div>
+      <div id="reportYearSummary"></div>
+    </div>
+
+    <!-- 月別カテゴリ円グラフ -->
+    <div class="card">
+      <h3>月別カテゴリ支出</h3>
+      <div class="report-header">
+        <button onclick="prevReportMonth()">◀</button>
+        <span id="reportMonthTitle"></span>
+        <button onclick="nextReportMonth()">▶</button>
+      </div>
+      <canvas id="categoryPie"></canvas>
+    </div>
+
+    <!-- 年間棒グラフ -->
+    <div class="card">
+      <h3>年間支出推移</h3>
+      <div class="report-header">
+        <button onclick="prevReportBarYear()">◀</button>
+        <span id="reportBarYearTitle"></span>
+        <button onclick="nextReportBarYear()">▶</button>
+      </div>
+      <canvas id="monthlyBar"></canvas>
+    </div>
+  </section>
+
+  <!-- 資産管理 -->
+  <section id="asset" class="page hidden">
+    <h2>資産管理</h2>
+
+    <div class="card">
+      <h3>総資産</h3>
+      <div id="totalAssetDisplay" style="font-size:24px; font-weight:bold;"></div>
+    </div>
+
+    <div class="card">
+      <h3>資産配分</h3>
+      <canvas id="assetPie"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>総資産推移</h3>
+      <canvas id="assetLine"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>現金・銀行</h3>
+      <div id="cashList"></div>
+      <button onclick="openCashModal()">追加</button>
+    </div>
+
+    <div class="card">
+      <h3>投資口座（NISA / iDeCo）</h3>
+      <div id="investList"></div>
+      <button onclick="openInvestModal()">追加</button>
+    </div>
+  </section>
+
+  <!-- 電卓モーダル -->
+  <div id="calcModal" class="calc-modal">
+    <div class="calc-box">
+      <input type="text" id="calcDisplay" readonly>
+
+      <div class="calc-grid">
+        <button onclick="pressNum('7')">7</button>
+        <button onclick="pressNum('8')">8</button>
+        <button onclick="pressNum('9')">9</button>
+        <button onclick="pressOp('/')">÷</button>
+
+        <button onclick="pressNum('4')">4</button>
+        <button onclick="pressNum('5')">5</button>
+        <button onclick="pressNum('6')">6</button>
+        <button onclick="pressOp('*')">×</button>
+
+        <button onclick="pressNum('1')">1</button>
+        <button onclick="pressNum('2')">2</button>
+        <button onclick="pressNum('3')">3</button>
+        <button onclick="pressOp('-')">−</button>
+
+        <button onclick="pressNum('0')">0</button>
+        <button onclick="clearCalc()">C</button>
+        <button onclick="backspace()">←</button>
+        <button onclick="pressOp('+')">＋</button>
+      </div>
+
+      <button class="eq-btn" onclick="calcEqual()">＝</button>
+      <button class="ok-btn" onclick="applyAmount()">OK</button>
+      <button class="close-btn" onclick="closeCalc()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 現金追加モーダル -->
+  <div id="cashModal" class="day-modal">
+    <div class="day-box">
+      <h3>現金・銀行を追加</h3>
+
+      <label>名前</label>
+      <input type="text" id="cashName" placeholder="例：楽天銀行 / 現金">
+
+      <label>残高</label>
+      <input type="text" id="cashBalance" readonly onclick="openCalc('cashBalance')">
+
+      <div class="edit-buttons">
+        <button class="save-btn" onclick="saveCash()">保存</button>
+        <button class="close-btn" onclick="closeCashModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 現金編集モーダル -->
+  <div id="cashEditModal" class="day-modal">
+    <div class="day-box">
+      <h3>現金・銀行を編集</h3>
+
+      <input type="hidden" id="cashEditId">
+
+      <label>名前</label>
+      <input type="text" id="cashEditName">
+
+      <label>残高</label>
+      <input type="text" id="cashEditBalance" readonly onclick="openCalc('cashEditBalance')">
+
+      <div class="edit-buttons">
+        <button class="save-btn" onclick="saveCashEdit()">保存</button>
+        <button class="delete-btn" onclick="deleteCash()">削除</button>
+        <button class="save-btn" onclick="setDefaultCashAccount()">デフォルトに設定</button>
+        <button class="close-btn" onclick="closeCashEditModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 投資口座追加モーダル -->
+  <div id="investModal" class="day-modal">
+    <div class="day-box">
+      <h3>投資口座を追加</h3>
+
+      <label>口座名（自由入力）</label>
+      <input type="text" id="investName">
+
+      <label>累計投資額</label>
+      <input type="text" id="investTotal" readonly onclick="openCalc('investTotal')">
+
+      <label>現在の評価額</label>
+      <input type="text" id="investValue" readonly onclick="openCalc('investValue')">
+
+      <div class="edit-buttons">
+        <button class="save-btn" onclick="saveInvest()">保存</button>
+        <button class="close-btn" onclick="closeInvestModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 投資口座編集モーダル -->
+  <div id="investEditModal" class="day-modal">
+    <div class="day-box">
+      <h3>投資口座を編集</h3>
+
+      <input type="hidden" id="investEditId">
+
+      <label>口座名</label>
+      <input type="text" id="investEditName">
+
+      <label>累計投資額</label>
+      <input type="text" id="investEditTotal" readonly onclick="openCalc('investEditTotal')">
+
+      <label>現在の評価額</label>
+      <input type="text" id="investEditValue" readonly onclick="openCalc('investEditValue')">
+
+      <div class="edit-buttons">
+        <button class="save-btn" onclick="saveInvestEdit()">保存</button>
+        <button class="delete-btn" onclick="deleteInvest()">削除</button>
+        <button class="close-btn" onclick="closeInvestEditModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日別明細モーダル -->
+  <div id="dayDetailModal" class="day-modal">
+    <div class="day-box">
+      <div id="dayDetailContent"></div>
+      <button class="close-btn" onclick="closeDayDetail()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 編集モーダル -->
+<div id="editModal" class="day-modal">
+  <div class="day-box">
+    <h3>編集</h3>
+
+    <input type="hidden" id="editId">
+    <input type="hidden" id="editType">
+
+    <label>金額</label>
+    <input id="editAmount" type="text" readonly onclick="openCalc('editAmount')">
+
+    <label>カテゴリ</label>
+    <select id="editCategory"></select>
+
+    <label>日付</label>
+    <input id="editDate" type="date">
+
+    <label>メモ</label>
+    <textarea id="editMemo"></textarea>
+
+    <label>口座</label>
+    <select id="editAccount"></select>
+
+    <button class="save-btn" onclick="saveEdit()">保存</button>
+    <button class="delete-btn" onclick="deleteEdit()">削除</button>
+    <button class="close-btn" onclick="closeEditModal()">閉じる</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC28bBVF0qI6z7PVz0GVQln3YELIH9nAD0",
+    authDomain: "kakeibo-25302.firebaseapp.com",
+    projectId: "kakeibo-25302",
+    storageBucket: "kakeibo-25302.firebasestorage.app",
+    messagingSenderId: "13808394233",
+    appId: "1:13808394233:web:2700568b99289371ede728",
+    measurementId: "G-GQF4YTM71C"
+  };
+
+  // Firebase 初期化
+  window.firebaseApp = initializeApp(firebaseConfig);
+  window.db = getFirestore(firebaseApp);
+  window.auth = getAuth(firebaseApp);
+</script>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+<div class="card">
+  <h3>ログイン</h3>
+  <input id="loginEmail" type="email" placeholder="メールアドレス">
+  <input id="loginPass" type="password" placeholder="パスワード">
+  <button onclick="login()">ログイン</button>
+  <button onclick="signup()">新規登録</button>
+</div>
