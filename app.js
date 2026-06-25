@@ -73,6 +73,18 @@ document.addEventListener("DOMContentLoaded", () => {
   loadData();
   renderAll();
   showPage("input");
+
+  // ログイン状態監視（Firebase は module 側で window に載っている）
+  if (window.onAuthStateChanged && window.auth) {
+    window.onAuthStateChanged(window.auth, async (user) => {
+      if (user) {
+        console.log("ログイン中:", user.email);
+        await loadFromFirebase();
+      } else {
+        console.log("ログアウト状態");
+      }
+    });
+  }
 });
 
 // =======================
@@ -809,11 +821,11 @@ function openEditModal(id, type) {
   document.getElementById("editType").value = type;
   document.getElementById("editAmount").value = item.amount;
 
-// ★ カテゴリをプルダウン化
-renderEditCategorySelect(item.category);
+  // カテゴリをプルダウン化
+  renderEditCategorySelect(item.category);
 
-document.getElementById("editDate").value = item.date;
-document.getElementById("editMemo").value = item.memo;
+  document.getElementById("editDate").value = item.date;
+  document.getElementById("editMemo").value = item.memo;
 
   const sel = document.getElementById("editAccount");
   sel.innerHTML = "";
@@ -847,6 +859,7 @@ function saveEdit() {
 
   if (type === "支出") {
     const old = expenses.find(e => e.id === id);
+    if (!old) return;
     const diff = amount - old.amount;
 
     if (old.accountId !== newAccountId) {
@@ -867,6 +880,7 @@ function saveEdit() {
 
   } else {
     const old = incomes.find(i => i.id === id);
+    if (!old) return;
     const diff = amount - old.amount;
 
     if (old.accountId !== newAccountId) {
@@ -902,11 +916,13 @@ function deleteEdit() {
 
   if (type === "支出") {
     const old = expenses.find(e => e.id === id);
+    if (!old) return;
     const acc = cashAccounts.find(a => a.id === old.accountId);
     if (acc) acc.balance += old.amount;
     expenses = expenses.filter(e => e.id !== id);
   } else {
     const old = incomes.find(i => i.id === id);
+    if (!old) return;
     const acc = cashAccounts.find(a => a.id === old.accountId);
     if (acc) acc.balance -= old.amount;
     incomes = incomes.filter(i => i.id !== id);
@@ -922,11 +938,13 @@ function deleteEdit() {
 function deleteEditFromList(id, type) {
   if (type === "支出") {
     const old = expenses.find(e => e.id === id);
+    if (!old) return;
     const acc = cashAccounts.find(a => a.id === old.accountId);
     if (acc) acc.balance += old.amount;
     expenses = expenses.filter(e => e.id !== id);
   } else {
     const old = incomes.find(i => i.id === id);
+    if (!old) return;
     const acc = cashAccounts.find(a => a.id === old.accountId);
     if (acc) acc.balance -= old.amount;
     incomes = incomes.filter(i => i.id !== id);
@@ -1143,72 +1161,89 @@ function renderAll() {
   renderMonthlyBar();
 }
 
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-
+// =======================
+// Firebase ログイン関連
+// =======================
 async function login() {
+  if (!window.auth || !window.signInWithEmailAndPassword) {
+    alert("Firebase がまだ初期化されていません");
+    return;
+  }
   const email = document.getElementById("loginEmail").value;
   const pass = document.getElementById("loginPass").value;
-  await signInWithEmailAndPassword(auth, email, pass);
-  alert("ログインしました");
+  try {
+    await window.signInWithEmailAndPassword(window.auth, email, pass);
+    alert("ログインしました");
+    await loadFromFirebase();
+  } catch (e) {
+    console.error(e);
+    alert("ログインに失敗しました：" + e.message);
+  }
 }
 
 async function signup() {
+  if (!window.auth || !window.createUserWithEmailAndPassword) {
+    alert("Firebase がまだ初期化されていません");
+    return;
+  }
   const email = document.getElementById("loginEmail").value;
   const pass = document.getElementById("loginPass").value;
-  await createUserWithEmailAndPassword(auth, email, pass);
-  alert("アカウントを作成しました");
+  try {
+    await window.createUserWithEmailAndPassword(window.auth, email, pass);
+    alert("アカウントを作成しました");
+    await loadFromFirebase();
+  } catch (e) {
+    console.error(e);
+    alert("アカウント作成に失敗しました：" + e.message);
+  }
 }
 
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    console.log("ログイン中:", user.email);
-    await loadFromFirebase();
-  }
-});
-
-import {
-  doc, setDoc, getDoc
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-
+// =======================
+// Firebase 保存・読み込み
+// =======================
 async function saveToFirebase() {
-  const user = auth.currentUser;
-  if (!user) return;
+  const user = window.auth && window.auth.currentUser;
+  if (!user || !window.db || !window.doc || !window.setDoc) return;
 
-  const ref = doc(db, "kakeibo", user.uid);
+  const ref = window.doc(window.db, "kakeibo", user.uid);
 
-  await setDoc(ref, {
-    expenses,
-    incomes,
-    cashAccounts,
-    investAccounts,
-    assetsHistory,
-    defaultCashAccountId,
-    updatedAt: Date.now()
-  });
+  try {
+    await window.setDoc(ref, {
+      expenses,
+      incomes,
+      cashAccounts,
+      investAccounts,
+      assetsHistory,
+      defaultCashAccountId,
+      updatedAt: Date.now()
+    });
+  } catch (e) {
+    console.error("Firebase 保存エラー:", e);
+  }
 }
 
 async function loadFromFirebase() {
-  const user = auth.currentUser;
-  if (!user) return;
+  const user = window.auth && window.auth.currentUser;
+  if (!user || !window.db || !window.doc || !window.getDoc) return;
 
-  const ref = doc(db, "kakeibo", user.uid);
-  const snap = await getDoc(ref);
+  const ref = window.doc(window.db, "kakeibo", user.uid);
+  try {
+    const snap = await window.getDoc(ref);
 
-  if (snap.exists()) {
-    const data = snap.data();
+    if (snap.exists()) {
+      const data = snap.data();
 
-    expenses = data.expenses || [];
-    incomes = data.incomes || [];
-    cashAccounts = data.cashAccounts || [];
-    investAccounts = data.investAccounts || [];
-    assetsHistory = data.assetsHistory || [];
-    defaultCashAccountId = data.defaultCashAccountId || null;
+      expenses = data.expenses || [];
+      incomes = data.incomes || [];
+      cashAccounts = data.cashAccounts || [];
+      investAccounts = data.investAccounts || [];
+      assetsHistory = data.assetsHistory || [];
+      defaultCashAccountId = data.defaultCashAccountId || null;
 
-    saveData(); // ローカルにも保存
-    renderAll();
+      saveData(); // ローカルにも保存
+      renderAll();
+    }
+  } catch (e) {
+    console.error("Firebase 読み込みエラー:", e);
   }
 }

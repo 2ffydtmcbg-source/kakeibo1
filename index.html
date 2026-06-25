@@ -14,6 +14,15 @@
 
 <body>
 
+  <!-- ログインカード（画面の一番上） -->
+  <div class="card" id="loginCard">
+    <h3>ログイン</h3>
+    <input id="loginEmail" type="email" placeholder="メールアドレス">
+    <input id="loginPass" type="password" placeholder="パスワード">
+    <button onclick="login()">ログイン</button>
+    <button onclick="signup()">新規登録</button>
+  </div>
+
   <h1>家計簿＋資産管理</h1>
 
   <!-- 下タブ -->
@@ -118,7 +127,6 @@
   <section id="report" class="page hidden">
     <h2>レポート</h2>
 
-    <!-- 年間サマリー -->
     <div class="card">
       <h3>年間サマリー</h3>
       <div class="report-header">
@@ -129,7 +137,6 @@
       <div id="reportYearSummary"></div>
     </div>
 
-    <!-- 月別カテゴリ円グラフ -->
     <div class="card">
       <h3>月別カテゴリ支出</h3>
       <div class="report-header">
@@ -140,7 +147,6 @@
       <canvas id="categoryPie"></canvas>
     </div>
 
-    <!-- 年間棒グラフ -->
     <div class="card">
       <h3>年間支出推移</h3>
       <div class="report-header">
@@ -311,63 +317,75 @@
   </div>
 
   <!-- 編集モーダル -->
-<div id="editModal" class="day-modal">
-  <div class="day-box">
-    <h3>編集</h3>
+  <div id="editModal" class="day-modal">
+    <div class="day-box">
+      <h3>編集</h3>
 
-    <input type="hidden" id="editId">
-    <input type="hidden" id="editType">
+      <input type="hidden" id="editId">
+      <input type="hidden" id="editType">
 
-    <label>金額</label>
-    <input id="editAmount" type="text" readonly onclick="openCalc('editAmount')">
+      <label>金額</label>
+      <input id="editAmount" type="text" readonly onclick="openCalc('editAmount')">
 
-    <label>カテゴリ</label>
-    <select id="editCategory"></select>
+      <label>カテゴリ</label>
+      <select id="editCategory"></select>
 
-    <label>日付</label>
-    <input id="editDate" type="date">
+      <label>日付</label>
+      <input id="editDate" type="date">
 
-    <label>メモ</label>
-    <textarea id="editMemo"></textarea>
+      <label>メモ</label>
+      <textarea id="editMemo"></textarea>
 
-    <label>口座</label>
-    <select id="editAccount"></select>
+      <label>口座</label>
+      <select id="editAccount"></select>
 
-    <button class="save-btn" onclick="saveEdit()">保存</button>
-    <button class="delete-btn" onclick="deleteEdit()">削除</button>
-    <button class="close-btn" onclick="closeEditModal()">閉じる</button>
+      <button class="save-btn" onclick="saveEdit()">保存</button>
+      <button class="delete-btn" onclick="deleteEdit()">削除</button>
+      <button class="close-btn" onclick="closeEditModal()">閉じる</button>
+    </div>
   </div>
-</div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-  import { getAuth } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+  <!-- Firebase 初期化＋関数を window に載せる -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyC28bBVF0qI6z7PVz0GVQln3YELIH9nAD0",
-    authDomain: "kakeibo-25302.firebaseapp.com",
-    projectId: "kakeibo-25302",
-    storageBucket: "kakeibo-25302.firebasestorage.app",
-    messagingSenderId: "13808394233",
-    appId: "1:13808394233:web:2700568b99289371ede728",
-    measurementId: "G-GQF4YTM71C"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyC28bBVF0qI6z7PVz0GVQln3YELIH9nAD0",
+      authDomain: "kakeibo-25302.firebaseapp.com",
+      projectId: "kakeibo-25302",
+      storageBucket: "kakeibo-25302.firebasestorage.app",
+      messagingSenderId: "13808394233",
+      appId: "1:13808394233:web:2700568b99289371ede728",
+      measurementId: "G-GQF4YTM71C"
+    };
 
-  // Firebase 初期化
-  window.firebaseApp = initializeApp(firebaseConfig);
-  window.db = getFirestore(firebaseApp);
-  window.auth = getAuth(firebaseApp);
-</script>
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app);
+    window.auth = getAuth(app);
 
+    // Firebase 関数を window に載せる
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.getDoc = getDoc;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+    window.onAuthStateChanged = onAuthStateChanged;
+  </script>
+
+  <!-- app.js（普通のスクリプト） -->
   <script src="app.js"></script>
+
 </body>
 </html>
-
-<div class="card">
-  <h3>ログイン</h3>
-  <input id="loginEmail" type="email" placeholder="メールアドレス">
-  <input id="loginPass" type="password" placeholder="パスワード">
-  <button onclick="login()">ログイン</button>
-  <button onclick="signup()">新規登録</button>
-</div>
