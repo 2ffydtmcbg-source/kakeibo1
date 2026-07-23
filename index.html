@@ -31,6 +31,7 @@
     <button onclick="showPage('calendar')">カレンダー</button>
     <button onclick="showPage('report')">レポート</button>
     <button onclick="showPage('asset')">資産管理</button>
+    <button onclick="undoLast()">↩ 戻る</button>
   </nav>
 
   <!-- 入力画面 -->
@@ -313,6 +314,14 @@
     <div class="day-box">
       <div id="dayDetailContent"></div>
       <button class="close-btn" onclick="closeDayDetail()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- カテゴリ内訳モーダル（円グラフタップ用） -->
+  <div id="categoryDetailModal" class="day-modal">
+    <div class="day-box">
+      <div id="categoryDetailContent"></div>
+      <button class="close-btn" onclick="closeCategoryDetail()">閉じる</button>
     </div>
   </div>
 
