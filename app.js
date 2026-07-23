@@ -27,6 +27,47 @@ let reportBarYear = new Date().getFullYear();
 // デフォルト口座
 let defaultCashAccountId = null;
 
+// 現在開いている日別明細モーダルの日付（即時反映用）
+let currentDayDetailDate = null;
+
+// 元に戻す用（直前の状態を1回分だけ保存）
+let undoSnapshot = null;
+
+// 現在開いているカテゴリ内訳モーダルのカテゴリ（即時反映用）
+let currentCategoryDetail = null;
+
+function pushUndoSnapshot() {
+  undoSnapshot = JSON.parse(JSON.stringify({
+    expenses,
+    incomes,
+    cashAccounts,
+    investAccounts,
+    assetsHistory,
+    defaultCashAccountId,
+  }));
+}
+
+function undoLast() {
+  if (!undoSnapshot) {
+    alert("戻れる操作がありません");
+    return;
+  }
+
+  expenses = undoSnapshot.expenses;
+  incomes = undoSnapshot.incomes;
+  cashAccounts = undoSnapshot.cashAccounts;
+  investAccounts = undoSnapshot.investAccounts;
+  assetsHistory = undoSnapshot.assetsHistory;
+  defaultCashAccountId = undoSnapshot.defaultCashAccountId;
+  undoSnapshot = null;
+
+  saveData();
+  renderAll();
+  refreshDayDetailIfOpen();
+  refreshCategoryDetailIfOpen();
+  alert("元に戻しました");
+}
+
 // =======================
 // データ保存・読み込み
 // =======================
@@ -249,6 +290,7 @@ function applyAmount() {
 // 家計簿：支出・収入追加（複数口座対応）
 // =======================
 function addExpense() {
+  pushUndoSnapshot();
   const amount = Number(document.getElementById("expAmount").value || "0");
   const category = document.getElementById("expCategory").value || "未分類";
   const date = document.getElementById("expDate").value;
@@ -283,6 +325,7 @@ function addExpense() {
 }
 
 function addIncome() {
+  pushUndoSnapshot();
   const amount = Number(document.getElementById("incAmount").value || "0");
   const category = document.getElementById("incCategory").value || "未分類";
   const date = document.getElementById("incDate").value;
@@ -330,6 +373,7 @@ function closeCashModal() {
 }
 
 function saveCash() {
+  pushUndoSnapshot();
   const name = document.getElementById("cashName").value || "名称未設定";
   const balance = Number(document.getElementById("cashBalance").value || "0");
 
@@ -366,6 +410,7 @@ function closeCashEditModal() {
 }
 
 function saveCashEdit() {
+  pushUndoSnapshot();
   const id = Number(document.getElementById("cashEditId").value);
   const name = document.getElementById("cashEditName").value || "名称未設定";
   const balance = Number(document.getElementById("cashEditBalance").value || "0");
@@ -384,6 +429,7 @@ function saveCashEdit() {
 }
 
 function deleteCash() {
+  pushUndoSnapshot();
   const id = Number(document.getElementById("cashEditId").value);
 
   if (defaultCashAccountId === id) {
@@ -440,6 +486,7 @@ function closeInvestModal() {
 }
 
 function saveInvest() {
+  pushUndoSnapshot();
   const name = document.getElementById("investName").value || "名称未設定";
   const totalInvest = Number(document.getElementById("investTotal").value || "0");
   const currentValue = Number(document.getElementById("investValue").value || "0");
@@ -475,6 +522,7 @@ function closeInvestEditModal() {
 }
 
 function saveInvestEdit() {
+  pushUndoSnapshot();
   const id = Number(document.getElementById("investEditId").value);
   const name = document.getElementById("investEditName").value || "名称未設定";
   const totalInvest = Number(document.getElementById("investEditTotal").value || "0");
@@ -495,6 +543,7 @@ function saveInvestEdit() {
 }
 
 function deleteInvest() {
+  pushUndoSnapshot();
   const id = Number(document.getElementById("investEditId").value);
   investAccounts = investAccounts.filter(a => a.id !== id);
 
@@ -774,6 +823,8 @@ function renderCalendar() {
 // 日別明細モーダル
 // =======================
 function openDayDetail(dateStr) {
+  currentDayDetailDate = dateStr;
+
   const list = [
     ...expenses.filter(e => e.date === dateStr).map(e => ({ ...e, type: "支出" })),
     ...incomes.filter(i => i.date === dateStr).map(i => ({ ...i, type: "収入" }))
@@ -802,6 +853,17 @@ function openDayDetail(dateStr) {
 
 function closeDayDetail() {
   document.getElementById("dayDetailModal").classList.remove("show");
+  currentDayDetailDate = null;
+}
+
+// 日別明細モーダルが開いていれば、最新の内容で再描画する
+function refreshDayDetailIfOpen() {
+  if (
+    currentDayDetailDate &&
+    document.getElementById("dayDetailModal").classList.contains("show")
+  ) {
+    openDayDetail(currentDayDetailDate);
+  }
 }
 
 // =======================
@@ -848,6 +910,7 @@ function closeEditModal() {
 // 編集保存（口座差分反映）
 // =======================
 function saveEdit() {
+  pushUndoSnapshot();
   const id = Number(document.getElementById("editId").value);
   const type = document.getElementById("editType").value;
 
@@ -904,6 +967,8 @@ function saveEdit() {
   recordAssetSnapshot();
   renderAll();
   closeEditModal();
+  refreshDayDetailIfOpen();
+  refreshCategoryDetailIfOpen();
   alert("保存しました");
 }
 
@@ -911,6 +976,7 @@ function saveEdit() {
 // 削除（口座反映）
 // =======================
 function deleteEdit() {
+  pushUndoSnapshot();
   const id = Number(document.getElementById("editId").value);
   const type = document.getElementById("editType").value;
 
@@ -932,10 +998,13 @@ function deleteEdit() {
   recordAssetSnapshot();
   renderAll();
   closeEditModal();
+  refreshDayDetailIfOpen();
+  refreshCategoryDetailIfOpen();
   alert("削除しました");
 }
 
 function deleteEditFromList(id, type) {
+  pushUndoSnapshot();
   if (type === "支出") {
     const old = expenses.find(e => e.id === id);
     if (!old) return;
@@ -953,6 +1022,8 @@ function deleteEditFromList(id, type) {
   saveData();
   recordAssetSnapshot();
   renderAll();
+  refreshDayDetailIfOpen();
+  refreshCategoryDetailIfOpen();
   alert("削除しました");
 }
 
@@ -1038,11 +1109,70 @@ function renderCategoryPie() {
       }],
     },
     options: {
+      onClick: (evt, elements) => {
+        if (elements && elements.length > 0) {
+          const idx = elements[0].index;
+          showCategoryDetail(labels[idx]);
+        }
+      },
       plugins: {
         legend: { position: "bottom" },
       },
     },
   });
+}
+
+// =======================
+// 円グラフタップ：カテゴリ内訳表示
+// =======================
+function showCategoryDetail(category) {
+  currentCategoryDetail = category;
+
+  const year = reportYear;
+  const month = reportMonth;
+  const ym = `${year}-${String(month).padStart(2, "0")}`;
+
+  const items = expenses
+    .filter(e => e.date.startsWith(ym) && e.category === category)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const total = items.reduce((a, b) => a + b.amount, 0);
+
+  let html = `<h3>${year}年${month}月　${category}</h3>`;
+  html += `<p>合計：${total.toLocaleString()}円</p>`;
+
+  if (items.length === 0) {
+    html += `<p>データなし</p>`;
+  } else {
+    items.forEach(item => {
+      html += `
+        <div class="day-item">
+          ${item.date}：${item.amount.toLocaleString()}円
+          <br><span>${item.memo || ""}</span><br>
+          <button onclick="openEditModal(${item.id}, '支出')">編集</button>
+          <button onclick="deleteEditFromList(${item.id}, '支出')">削除</button>
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("categoryDetailContent").innerHTML = html;
+  document.getElementById("categoryDetailModal").classList.add("show");
+}
+
+function closeCategoryDetail() {
+  document.getElementById("categoryDetailModal").classList.remove("show");
+  currentCategoryDetail = null;
+}
+
+// カテゴリ内訳モーダルが開いていれば、最新の内容で再描画する
+function refreshCategoryDetailIfOpen() {
+  if (
+    currentCategoryDetail &&
+    document.getElementById("categoryDetailModal").classList.contains("show")
+  ) {
+    showCategoryDetail(currentCategoryDetail);
+  }
 }
 
 function prevReportMonth() {
